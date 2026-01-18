@@ -1,0 +1,6 @@
+{
+  "message.zombiemod.not_enough_points": "You don't have enough points",
+  "message.zombiemod.ammo_purchased": "Ammo refilled",
+  "hud.zombiemod.points": "Points: %s",
+  "hud.zombiemod.wave": "Wave: %s"
+}
