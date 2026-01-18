@@ -65,6 +65,8 @@ public class GameManager {
     }
 
     public static void startGame(ServerLevel level, String mapName) {
+        // NEW: Close all doors at game start
+        com.zombiemod.command.DoorCommand.closeAllDoorsAtGameStart(level);
         if (currentState != GameState.WAITING) {
             return; // Déjà lancée
         }
@@ -357,7 +359,7 @@ public class GameManager {
         WaveManager.reset();
 
         // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
-        com.zombiemod.command.DoorCommand.resetAllDoors(level);
+        com.zombiemod.command.DoorCommand.openAllDoorsAtGameEnd(level);
     }
 
     public static void reset() {

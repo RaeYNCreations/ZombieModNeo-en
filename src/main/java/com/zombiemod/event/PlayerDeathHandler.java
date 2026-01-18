@@ -113,6 +113,6 @@ public class PlayerDeathHandler {
         RespawnManager.reset();
 
         // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
-        com.zombiemod.command.DoorCommand.resetAllDoors(level);
+        com.zombiemod.command.DoorCommand.openAllDoorsAtGameEnd(level);
     }
 }

@@ -22,7 +22,7 @@ public class DoorConfig {
 
     // Constructeur pour Gson
     public DoorConfig() {
-        this.isOpen = false;
+        this.isOpen = true; // Default to open (will be overridden by map mode if needed)
         this.cost = 1000; // Coût par défaut
         this.wallBlocks = new ArrayList<>();
     }
@@ -30,9 +30,20 @@ public class DoorConfig {
     public DoorConfig(int doorNumber, BlockPos signPosition, int cost) {
         this.doorNumber = doorNumber;
         this.signPosition = new MapConfig.SerializableBlockPos(signPosition);
-        this.isOpen = false;
+        this.isOpen = true; // Default to open (will be overridden by map mode if needed)
         this.cost = cost;
         this.wallBlocks = new ArrayList<>();
+    }
+
+    // Constructor that respects the map's door mode
+    public DoorConfig(int doorNumber, BlockPos signPosition, int cost, MapConfig.DoorMode doorMode) {
+        this.doorNumber = doorNumber;
+        this.signPosition = new MapConfig.SerializableBlockPos(signPosition);
+        this.cost = cost;
+        this.wallBlocks = new ArrayList<>();
+        
+        // Set initial state based on door mode
+        this.isOpen = (doorMode == MapConfig.DoorMode.OPEN_BY_DEFAULT);
     }
 
     public int getDoorNumber() {
@@ -207,4 +218,3 @@ public class DoorConfig {
         }
     }
 }
-

@@ -9,21 +9,29 @@ import java.util.Map;
 
 public class MapConfig {
 
+    public enum DoorMode {
+        OPEN_BY_DEFAULT,  // Doors open when game not running, close on start
+        CLOSED_BY_DEFAULT // Doors closed when game not running, stay closed (original behavior)
+    }
+
     private String name;
     private SerializableBlockPos respawnPoint;
     private List<ZombieSpawnPoint> zombieSpawnPoints;
     private Map<Integer, DoorConfig> doors; // Numéro de porte -> Config
+    private DoorMode doorMode; // NEW: Door behavior mode
 
     // Constructeur pour Gson
     public MapConfig() {
         this.zombieSpawnPoints = new ArrayList<>();
         this.doors = new HashMap<>();
+        this.doorMode = DoorMode.OPEN_BY_DEFAULT; // Default to new behavior
     }
 
     public MapConfig(String name) {
         this.name = name;
         this.zombieSpawnPoints = new ArrayList<>();
         this.doors = new HashMap<>();
+        this.doorMode = DoorMode.OPEN_BY_DEFAULT; // Default to new behavior
     }
 
     public String getName() {
@@ -141,6 +149,28 @@ public class MapConfig {
         for (DoorConfig door : doors.values()) {
             door.setOpen(false);
         }
+    }
+
+    // === Door Mode Management ===
+
+    public DoorMode getDoorMode() {
+        // Handle legacy maps that don't have doorMode set
+        if (doorMode == null) {
+            doorMode = DoorMode.OPEN_BY_DEFAULT;
+        }
+        return doorMode;
+    }
+
+    public void setDoorMode(DoorMode mode) {
+        this.doorMode = mode;
+    }
+
+    public boolean isOpenByDefault() {
+        return getDoorMode() == DoorMode.OPEN_BY_DEFAULT;
+    }
+
+    public boolean isClosedByDefault() {
+        return getDoorMode() == DoorMode.CLOSED_BY_DEFAULT;
     }
 
     // Classe interne pour sérialiser BlockPos en JSON
