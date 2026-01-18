@@ -66,6 +66,16 @@ public class DoorCommand {
                         .then(Commands.argument("mapname", StringArgumentType.string())
                                 .then(Commands.argument("doorNumber", IntegerArgumentType.integer(0))
                                         .executes(DoorCommand::closeDoor)))));
+                                        // /zombiedoor mode <mapname> <open|closed>
+        dispatcher.register(Commands.literal("zombiedoor")
+        .requires(source -> source.hasPermission(2))
+        .then(Commands.literal("mode")
+                .then(Commands.argument("mapname", StringArgumentType.string())
+                        .then(Commands.literal("open")
+                                .executes(context -> setDoorMode(context, MapConfig.DoorMode.OPEN_BY_DEFAULT)))
+                        .then(Commands.literal("closed")
+                                .executes(context -> setDoorMode(context, MapConfig.DoorMode.CLOSED_BY_DEFAULT)))
+                        .executes(DoorCommand::showDoorMode))));
     }
 
     private static int addDoor(CommandContext<CommandSourceStack> context) {
@@ -362,7 +372,86 @@ public class DoorCommand {
             }
         }
     }
-
+    public static void openAllDoorsAtGameEnd(ServerLevel level) {
+        MapConfig map = MapManager.getSelectedMap();
+        if (map == null) {
+            return;
+        }
+    
+        Map<Integer, DoorConfig> doors = map.getDoors();
+        if (doors.isEmpty()) {
+            return;
+        }
+    
+        MapConfig.DoorMode mode = map.getDoorMode();
+    
+        if (mode == MapConfig.DoorMode.OPEN_BY_DEFAULT) {
+            System.out.println("[DoorCommand] Opening " + doors.size() + " door(s) at game end (OPEN_BY_DEFAULT mode)");
+    
+            for (DoorConfig door : doors.values()) {
+                if (!door.isOpen()) {
+                    openDoorPhysically(level, door);
+                    System.out.println("[DoorCommand] Door #" + door.getDoorNumber() + " physically opened");
+                }
+            }
+    
+            for (DoorConfig door : doors.values()) {
+                map.openDoor(door.getDoorNumber());
+            }
+        } else {
+            System.out.println("[DoorCommand] Closing " + doors.size() + " door(s) at game end (CLOSED_BY_DEFAULT mode)");
+    
+            for (DoorConfig door : doors.values()) {
+                if (door.isOpen()) {
+                    closeDoorPhysically(level, door);
+                    System.out.println("[DoorCommand] Door #" + door.getDoorNumber() + " physically closed (reset)");
+                }
+            }
+    
+            for (DoorConfig door : doors.values()) {
+                map.closeDoor(door.getDoorNumber());
+            }
+        }
+    
+        MapManager.save();
+        com.zombiemod.system.ServerDoorTracker.syncToAllPlayers();
+    
+        System.out.println("[DoorCommand] All doors reset for game end!");
+    }
+    public static void closeAllDoorsAtGameStart(ServerLevel level) {
+        MapConfig map = MapManager.getSelectedMap();
+        if (map == null) {
+            return;
+        }
+    
+        if (map.getDoorMode() != MapConfig.DoorMode.OPEN_BY_DEFAULT) {
+            System.out.println("[DoorCommand] Skipping door closure - map is in CLOSED_BY_DEFAULT mode");
+            return;
+        }
+    
+        Map<Integer, DoorConfig> doors = map.getDoors();
+        if (doors.isEmpty()) {
+            return;
+        }
+    
+        System.out.println("[DoorCommand] Closing " + doors.size() + " door(s) at game start (OPEN_BY_DEFAULT mode)");
+    
+        for (DoorConfig door : doors.values()) {
+            if (door.isOpen()) {
+                closeDoorPhysically(level, door);
+                System.out.println("[DoorCommand] Door #" + door.getDoorNumber() + " physically closed");
+            }
+        }
+    
+        for (DoorConfig door : doors.values()) {
+            map.closeDoor(door.getDoorNumber());
+        }
+        MapManager.save();
+    
+        com.zombiemod.system.ServerDoorTracker.syncToAllPlayers();
+    
+        System.out.println("[DoorCommand] All doors closed for game start!");
+    }
     /**
      * Réinitialise toutes les portes de la map active (en fin de partie)
      * Ferme physiquement toutes les portes ouvertes et réinitialise leur état
@@ -390,11 +479,89 @@ public class DoorCommand {
 
         // Réinitialiser l'état de toutes les portes dans la config
         map.resetDoors();
+        openAllDoorsAtGameEnd(level);
         MapManager.save();
 
         // Synchroniser avec tous les clients
         com.zombiemod.system.ServerDoorTracker.syncToAllPlayers();
 
         System.out.println("[DoorCommand] All doors reset!");
+    }
+    private static int setDoorMode(CommandContext<CommandSourceStack> context, MapConfig.DoorMode mode) {
+        String mapName = StringArgumentType.getString(context, "mapname");
+        CommandSourceStack source = context.getSource();
+    
+        if (!MapManager.mapExists(mapName)) {
+            source.sendFailure(Component.literal("§cThe map '" + mapName + "' does not exist!"));
+            return 0;
+        }
+    
+        MapConfig map = MapManager.getMap(mapName);
+        MapConfig.DoorMode oldMode = map.getDoorMode();
+        map.setDoorMode(mode);
+        MapManager.save();
+    
+        String modeText = mode == MapConfig.DoorMode.OPEN_BY_DEFAULT ? "§aOPEN BY DEFAULT" : "§cCLOSED BY DEFAULT";
+        String oldModeText = oldMode == MapConfig.DoorMode.OPEN_BY_DEFAULT ? "open by default" : "closed by default";
+    
+        source.sendSuccess(() -> Component.literal("§aDoor mode for map '§e" + mapName + "§a' changed:"), true);
+        source.sendSuccess(() -> Component.literal("  §7Previous: §f" + oldModeText), false);
+        source.sendSuccess(() -> Component.literal("  §7New: " + modeText), false);
+    
+        if (mode == MapConfig.DoorMode.OPEN_BY_DEFAULT) {
+            source.sendSuccess(() -> Component.literal(""), false);
+            source.sendSuccess(() -> Component.literal("§e§lBehavior:"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors are §aOPEN §7when no game is running"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors §cCLOSE §7automatically when game starts"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors §aOPEN §7automatically when game ends"), false);
+        } else {
+            source.sendSuccess(() -> Component.literal(""), false);
+            source.sendSuccess(() -> Component.literal("§e§lBehavior:"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors are §cCLOSED §7when no game is running"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors stay §cCLOSED §7when game starts"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors reset to §cCLOSED §7when game ends"), false);
+        }
+    
+        return 1;
+    }
+    
+    private static int showDoorMode(CommandContext<CommandSourceStack> context) {
+        String mapName = StringArgumentType.getString(context, "mapname");
+        CommandSourceStack source = context.getSource();
+    
+        if (!MapManager.mapExists(mapName)) {
+            source.sendFailure(Component.literal("§cThe map '" + mapName + "' does not exist!"));
+            return 0;
+        }
+    
+        MapConfig map = MapManager.getMap(mapName);
+        MapConfig.DoorMode mode = map.getDoorMode();
+    
+        String modeText = mode == MapConfig.DoorMode.OPEN_BY_DEFAULT ? "§aOPEN BY DEFAULT" : "§cCLOSED BY DEFAULT";
+    
+        source.sendSuccess(() -> Component.literal("§6§l=== DOOR MODE FOR " + mapName.toUpperCase() + " ==="), false);
+        source.sendSuccess(() -> Component.literal(""), false);
+        source.sendSuccess(() -> Component.literal("§eCurrent Mode: " + modeText), false);
+        source.sendSuccess(() -> Component.literal(""), false);
+    
+        if (mode == MapConfig.DoorMode.OPEN_BY_DEFAULT) {
+            source.sendSuccess(() -> Component.literal("§e§lBehavior:"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors are §aOPEN §7when no game is running"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors §cCLOSE §7automatically when game starts"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors §aOPEN §7automatically when game ends"), false);
+            source.sendSuccess(() -> Component.literal(""), false);
+            source.sendSuccess(() -> Component.literal("§7To change to closed by default:"), false);
+            source.sendSuccess(() -> Component.literal("§f/zombiedoor mode " + mapName + " closed"), false);
+        } else {
+            source.sendSuccess(() -> Component.literal("§e§lBehavior:"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors are §cCLOSED §7when no game is running"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors stay §cCLOSED §7when game starts"), false);
+            source.sendSuccess(() -> Component.literal("  §7• Doors reset to §cCLOSED §7when game ends"), false);
+            source.sendSuccess(() -> Component.literal(""), false);
+            source.sendSuccess(() -> Component.literal("§7To change to open by default:"), false);
+            source.sendSuccess(() -> Component.literal("§f/zombiedoor mode " + mapName + " open"), false);
+        }
+    
+        return 1;
     }
 }
