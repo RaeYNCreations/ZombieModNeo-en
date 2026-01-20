@@ -69,10 +69,6 @@ public class PlayerDeathHandler {
         for (UUID uuid : GameManager.getActivePlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
-                // Clear l'inventaire de la partie puis restaurer l'inventaire original
-                InventoryManager.clearInventory(player);
-                InventoryManager.restoreInventory(player);
-
                 // Mettre en survie
                 player.setGameMode(GameType.ADVENTURE);
 
@@ -101,8 +97,6 @@ public class PlayerDeathHandler {
         for (UUID uuid : GameManager.getWaitingPlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
-                InventoryManager.clearInventory(player);
-                InventoryManager.restoreInventory(player);
                 player.setGameMode(GameType.ADVENTURE);
             }
         }

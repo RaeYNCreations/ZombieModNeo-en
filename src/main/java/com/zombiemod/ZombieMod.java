@@ -82,6 +82,7 @@ public class ZombieMod {
     @SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
         GameCommands.register(event.getDispatcher());
+        RangeCommands.register(event.getDispatcher());
         SpawnCommand.register(event.getDispatcher());
         RespawnCommand.register(event.getDispatcher());
         DoorCommand.register(event.getDispatcher());

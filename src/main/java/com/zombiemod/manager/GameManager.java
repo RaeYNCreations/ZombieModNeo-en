@@ -101,55 +101,99 @@ public class GameManager {
         broadcastToAll(level, "§7Step on the activator pad or type §6/zombiejoin §7to join!");
     }
 
-    private static int syncTickCounter = 0;
+    /**
+     * Starts a game with a custom countdown timer
+     * @param level The server level
+     * @param mapName The map name (can be null for default)
+     * @param seconds Custom countdown duration in seconds (will be converted to ticks)
+     */
+    public static void startGameWithCustomTimer(ServerLevel level, String mapName, int seconds) {
+        // NEW: Close all doors at game start
+        com.zombiemod.command.DoorCommand.closeAllDoorsAtGameStart(level);
+        
+        if (currentState != GameState.WAITING) {
+            return; // Déjà lancée
+        }
 
-    public static void tick(ServerLevel level) {
-        // Maintenir la saturation des joueurs actifs à 100% pour régénération constante
-        if (currentState == GameState.WAVE_ACTIVE || currentState == GameState.WAVE_COOLDOWN) {
-            for (UUID uuid : activePlayers) {
-                ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
-                if (player != null && !player.isSpectator() && !player.isDeadOrDying()) {
-                    player.getFoodData().setFoodLevel(20);
-                    player.getFoodData().setSaturation(20.0f);
+        // Sélectionner la map si un nom est fourni
+        if (mapName != null && !mapName.isEmpty()) {
+            if (!com.zombiemod.map.MapManager.mapExists(mapName)) {
+                System.err.println("[GameManager] ERROR: The map '" + mapName + "' does not exist!");
+                broadcastToAll(level, "§c§lERROR: The map '" + mapName + "' does not exist!");
+                return;
+            }
+            com.zombiemod.map.MapManager.selectMap(mapName);
+            System.out.println("[GameManager] Map '" + mapName + "' selected");
+
+            // Synchroniser les portes de la nouvelle map avec tous les clients
+            com.zombiemod.system.ServerDoorTracker.syncToAllPlayers();
+        }
+
+        currentState = GameState.STARTING;
+        startCountdownTicks = seconds * 20; // Convert seconds to ticks (20 ticks = 1 second)
+        currentMapName = mapName;
+
+        // Recharger les weapon crates depuis la sauvegarde persistante
+        System.out.println("[GameManager] Reloading weapon crates...");
+        ServerWeaponCrateTracker.scanAllLoadedChunks(level);
+
+        broadcastToAll(level, "§6§l=== ZOMBIE GUN RANGE ===");
+        if (mapName != null && !mapName.isEmpty()) {
+            broadcastToAll(level, "§eRange: §6" + mapName);
+        }
+        broadcastToAll(level, "§eThe game starts in §c" + seconds + " seconds§e!");
+        broadcastToAll(level, "§7Step on the activator pad or type §6/zombierangejoin §7to join!");
+    }
+
+        private static int syncTickCounter = 0;
+
+        public static void tick(ServerLevel level) {
+            // Maintenir la saturation des joueurs actifs à 100% pour régénération constante
+            if (currentState == GameState.WAVE_ACTIVE || currentState == GameState.WAVE_COOLDOWN) {
+                for (UUID uuid : activePlayers) {
+                    ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+                    if (player != null && !player.isSpectator() && !player.isDeadOrDying()) {
+                        player.getFoodData().setFoodLevel(20);
+                        player.getFoodData().setSaturation(20.0f);
+                    }
                 }
             }
-        }
 
-        // Envoyer packet de sync toutes les 5 ticks (4 fois par seconde)
-        syncTickCounter++;
-        if (syncTickCounter >= 5) {
-            sendSyncPacketToAll(level);
-            syncTickCounter = 0;
-        }
-
-        if (currentState == GameState.STARTING) {
-            startCountdownTicks--;
-            int seconds = startCountdownTicks / 20;
-
-            // Messages toutes les 10 secondes
-            if (startCountdownTicks % 200 == 0 && seconds > 5) {
-                broadcastToAll(level, "§eGame starts in §6" + seconds + "s §e! Step on the activator pad or type §6/zombiejoin §eto join!");
-                playGlobalSound(level, SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f);
+            // Envoyer packet de sync toutes les 5 ticks (4 fois par seconde)
+            syncTickCounter++;
+            if (syncTickCounter >= 5) {
+                sendSyncPacketToAll(level);
+                syncTickCounter = 0;
             }
 
-            // Messages chaque seconde pour les 5 dernières
-            if (seconds <= 5 && startCountdownTicks % 20 == 0 && seconds > 0) {
-                broadcastToAll(level, "§c§l" + seconds + "...");
-                playGlobalSound(level, SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f + (0.2f * (5 - seconds)));
+            if (currentState == GameState.STARTING) {
+                startCountdownTicks--;
+                int seconds = startCountdownTicks / 20;
+
+                // Messages toutes les 10 secondes
+                if (startCountdownTicks % 200 == 0 && seconds > 5) {
+                    broadcastToAll(level, "§eGame starts in §6" + seconds + "s §e! Step on the activator pad or type §6/zombiejoin §eto join!");
+                    playGlobalSound(level, SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f);
+                }
+
+                // Messages chaque seconde pour les 5 dernières
+                if (seconds <= 5 && startCountdownTicks % 20 == 0 && seconds > 0) {
+                    broadcastToAll(level, "§c§l" + seconds + "...");
+                    playGlobalSound(level, SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f + (0.2f * (5 - seconds)));
+                }
+
+                // Démarrage !
+                if (startCountdownTicks <= 0) {
+                    activateAllPlayers(level);
+                    WaveManager.startWave(level);
+                    currentState = GameState.WAVE_ACTIVE;
+                }
             }
 
-            // Démarrage !
-            if (startCountdownTicks <= 0) {
-                activateAllPlayers(level);
-                WaveManager.startWave(level);
-                currentState = GameState.WAVE_ACTIVE;
+            // Tick du WaveManager pour spawn progressif et countdown entre vagues
+            if (currentState == GameState.WAVE_ACTIVE || currentState == GameState.WAVE_COOLDOWN) {
+                WaveManager.tick(level);
             }
-        }
-
-        // Tick du WaveManager pour spawn progressif et countdown entre vagues
-        if (currentState == GameState.WAVE_ACTIVE || currentState == GameState.WAVE_COOLDOWN) {
-            WaveManager.tick(level);
-        }
     }
 
     private static void activateAllPlayers(ServerLevel level) {

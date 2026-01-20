@@ -94,8 +94,6 @@ public class GameCommands {
         for (UUID uuid : GameManager.getActivePlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
-                InventoryManager.clearInventory(player);
-                InventoryManager.restoreInventory(player);
                 player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
                 player.sendSystemMessage(Component.literal("§7The game has been stopped."));
             }
@@ -104,8 +102,6 @@ public class GameCommands {
         for (UUID uuid : GameManager.getWaitingPlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
-                InventoryManager.clearInventory(player);
-                InventoryManager.restoreInventory(player);
                 player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
                 player.sendSystemMessage(Component.literal("§7The game has been stopped."));
             }
