@@ -241,10 +241,6 @@ public class GameManager {
                 break;
 
             case STARTING: // Countdown 60s
-                // Sauvegarder l'inventaire du joueur avant de le clear
-                InventoryManager.saveInventory(player);
-                InventoryManager.clearInventory(player);
-
                 waitingPlayers.add(uuid);
                 player.teleportTo(respawn.getX() + 0.5, respawn.getY(), respawn.getZ() + 0.5);
                 player.setGameMode(GameType.ADVENTURE); // Empêcher de casser des blocs
@@ -255,10 +251,6 @@ public class GameManager {
                 break;
 
             case WAVE_ACTIVE: // Vague en cours
-                // Sauvegarder l'inventaire du joueur avant de le clear
-                InventoryManager.saveInventory(player);
-                InventoryManager.clearInventory(player);
-
                 waitingPlayers.add(uuid);
                 player.setGameMode(GameType.SPECTATOR);
                 player.teleportTo(respawn.getX() + 0.5, respawn.getY(), respawn.getZ() + 0.5);
@@ -269,10 +261,6 @@ public class GameManager {
                 break;
 
             case WAVE_COOLDOWN: // Entre vagues (10s)
-                // Sauvegarder l'inventaire du joueur avant de le clear
-                InventoryManager.saveInventory(player);
-                InventoryManager.clearInventory(player);
-
                 activePlayers.add(uuid);
                 player.setGameMode(GameType.ADVENTURE);
                 player.teleportTo(respawn.getX() + 0.5, respawn.getY(), respawn.getZ() + 0.5);
@@ -301,10 +289,6 @@ public class GameManager {
         activePlayers.remove(uuid);
         waitingPlayers.remove(uuid);
         RespawnManager.removeDeadPlayer(uuid);
-
-        // Clear l'inventaire de la partie puis restaurer l'inventaire original
-        InventoryManager.clearInventory(player);
-        InventoryManager.restoreInventory(player);
 
         player.setGameMode(GameType.ADVENTURE);
         player.sendSystemMessage(Component.literal("§7You quit the game!"));

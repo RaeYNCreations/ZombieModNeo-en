@@ -10,36 +10,13 @@ import com.zombiemod.manager.PointsManager;
 import com.zombiemod.manager.WaveManager;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.ItemStack;
-import net.neoforged.fml.ModList;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public class RangeCommands {
-
-    // Storage for saved inventories specific to range mode
-    private static final Map<UUID, CompoundTag> rangeInventories = new HashMap<>();
-
-    // Cache pour savoir si Curios est installé
-    private static Boolean curiosLoaded = null;
-
-    /**
-     * Vérifie si Curios API est installé
-     */
-    private static boolean isCuriosLoaded() {
-        if (curiosLoaded == null) {
-            curiosLoaded = ModList.get().isLoaded("curios");
-        }
-        return curiosLoaded;
-    }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         // /zombierangestart [seconds] [mapName]
@@ -131,10 +108,12 @@ public class RangeCommands {
         // Nettoyer tous les mobs avec la méthode dédiée
         WaveManager.killAllMobs();
 
-        // Restaurer les inventaires et mettre tous les joueurs en survival
+        // Restaurer les inventaires et mettre tous les joueurs en adventure mode
         for (UUID uuid : GameManager.getActivePlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
+                // Restaurer l'inventaire d'origine via InventoryManager
+                InventoryManager.restoreInventory(player);
                 player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
                 player.sendSystemMessage(Component.literal("§7The Gun range has been stopped."));
             }
@@ -143,6 +122,8 @@ public class RangeCommands {
         for (UUID uuid : GameManager.getWaitingPlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
+                // Restaurer l'inventaire d'origine via InventoryManager
+                InventoryManager.restoreInventory(player);
                 player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
                 player.sendSystemMessage(Component.literal("§7The Gun range has been stopped."));
             }
@@ -151,9 +132,7 @@ public class RangeCommands {
         // Réinitialiser tous les managers
         GameManager.reset();
         WaveManager.reset();
-
-        // Clear range inventories
-        clearRangeInventories();
+        InventoryManager.reset();
 
         // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
         DoorCommand.openAllDoorsAtGameEnd(level);
@@ -169,8 +148,12 @@ public class RangeCommands {
         }
 
         ServerLevel level = player.serverLevel();
-        saveRangeInventory(player);
+        
+        // Sauvegarder l'inventaire via InventoryManager avant de le clear
+        InventoryManager.saveInventory(player);
         InventoryManager.clearInventory(player);
+        
+        // Rejoindre la partie
         GameManager.joinGame(player, level);
 
         return 1;
@@ -182,8 +165,11 @@ public class RangeCommands {
         }
 
         ServerLevel level = player.serverLevel();
-        restoreRangeInventory(player);
-        InventoryManager.clearInventory(player);
+        
+        // Restaurer l'inventaire via InventoryManager
+        InventoryManager.restoreInventory(player);
+        
+        // Quitter la partie
         GameManager.leaveGame(player, level);
 
         return 1;
@@ -246,190 +232,5 @@ public class RangeCommands {
             case WAVE_ACTIVE -> "Current wave";
             case WAVE_COOLDOWN -> "Between waves (" + WaveManager.getCountdownSeconds() + "s)";
         };
-    }
-
-    /**
-     * Saves a player's inventory specifically for range mode
-     */
-    private static void saveRangeInventory(ServerPlayer player) {
-        CompoundTag inventoryData = new CompoundTag();
-
-        // Save main inventory
-        Inventory inventory = player.getInventory();
-        ListTag itemsList = new ListTag();
-        for (int i = 0; i < inventory.getContainerSize(); i++) {
-            ItemStack stack = inventory.getItem(i);
-            if (!stack.isEmpty()) {
-                CompoundTag itemTag = new CompoundTag();
-                itemTag.putInt("Slot", i);
-                stack.save(player.level().registryAccess(), itemTag);
-                itemsList.add(itemTag);
-            }
-        }
-        inventoryData.put("Items", itemsList);
-
-        // Save armor
-        ListTag armorList = new ListTag();
-        for (int i = 0; i < player.getInventory().armor.size(); i++) {
-            ItemStack stack = player.getInventory().armor.get(i);
-            if (!stack.isEmpty()) {
-                CompoundTag itemTag = new CompoundTag();
-                itemTag.putInt("Slot", i);
-                stack.save(player.level().registryAccess(), itemTag);
-                armorList.add(itemTag);
-            }
-        }
-        inventoryData.put("Armor", armorList);
-
-        // Save offhand
-        ItemStack offhand = player.getOffhandItem();
-        if (!offhand.isEmpty()) {
-            CompoundTag offhandTag = new CompoundTag();
-            offhand.save(player.level().registryAccess(), offhandTag);
-            inventoryData.put("Offhand", offhandTag);
-        }
-
-        // Sauvegarder le niveau d'XP
-        inventoryData.putInt("XpLevel", player.experienceLevel);
-        inventoryData.putFloat("XpProgress", player.experienceProgress);
-        inventoryData.putInt("XpTotal", player.totalExperience);
-
-        // Sauvegarder Curios si disponible
-        if (isCuriosLoaded()) {
-            try {
-                saveCuriosInventory(player, inventoryData);
-            } catch (Exception e) {
-                System.err.println("[InventoryManager] ERROR: Could not save Curios: " + e.getMessage());
-            }
-        }
-
-        rangeInventories.put(player.getUUID(), inventoryData);
-        System.out.println("[RangeCommands] Saved inventory for player: " + player.getName().getString());
-    }
-
-    /**
-     * Sauvegarde l'inventaire Curios (méthode séparée pour isolation)
-     */
-    private static void saveCuriosInventory(ServerPlayer player, CompoundTag inventoryData) {
-        top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
-            ListTag curiosData = handler.saveInventory(true);
-            inventoryData.put("Curios", curiosData);
-        });
-    }
-
-    /**
-     * Restores a player's inventory from range mode storage
-     */
-    private static void restoreRangeInventory(ServerPlayer player) {
-        CompoundTag inventoryData = rangeInventories.get(player.getUUID());
-        if (inventoryData == null) {
-            System.out.println("[RangeCommands] No saved inventory found for player: " + player.getName().getString());
-            return;
-        }
-
-        // Clear current inventory first
-        player.getInventory().clearContent();
-
-        // Restore main inventory
-        ListTag itemsList = inventoryData.getList("Items", 10); // 10 = TAG_COMPOUND
-        for (int i = 0; i < itemsList.size(); i++) {
-            CompoundTag itemTag = itemsList.getCompound(i);
-            int slot = itemTag.getInt("Slot");
-            ItemStack stack = ItemStack.parseOptional(player.level().registryAccess(), itemTag);
-            if (slot >= 0 && slot < player.getInventory().getContainerSize()) {
-                player.getInventory().setItem(slot, stack);
-            }
-        }
-
-        // Restore armor
-        ListTag armorList = inventoryData.getList("Armor", 10);
-        for (int i = 0; i < armorList.size(); i++) {
-            CompoundTag itemTag = armorList.getCompound(i);
-            int slot = itemTag.getInt("Slot");
-            ItemStack stack = ItemStack.parseOptional(player.level().registryAccess(), itemTag);
-            if (slot >= 0 && slot < player.getInventory().armor.size()) {
-                player.getInventory().armor.set(slot, stack);
-            }
-        }
-
-        // Restore offhand
-        if (inventoryData.contains("Offhand")) {
-            CompoundTag offhandTag = inventoryData.getCompound("Offhand");
-            ItemStack offhand = ItemStack.parseOptional(player.level().registryAccess(), offhandTag);
-            player.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND, offhand);
-        }
-
-        // Restaurer l'XP
-        if (inventoryData.contains("XpLevel")) {
-            player.experienceLevel = inventoryData.getInt("XpLevel");
-            player.experienceProgress = inventoryData.getFloat("XpProgress");
-            player.totalExperience = inventoryData.getInt("XpTotal");
-        }
-
-        // Restaurer Curios si disponible
-        if (isCuriosLoaded() && inventoryData.contains("Curios")) {
-            try {
-                restoreCuriosInventory(player, inventoryData);
-            } catch (Exception e) {
-                System.err.println("[InventoryManager] ERROR: Could not load Curios: " + e.getMessage());
-            }
-        }
-
-        // Remove from storage after restoring
-        rangeInventories.remove(player.getUUID());
-        System.out.println("[RangeCommands] Restored inventory for player: " + player.getName().getString());
-    }
-
-    /**
-     * Restaure l'inventaire Curios (méthode séparée pour isolation)
-     */
-    private static void restoreCuriosInventory(ServerPlayer player, CompoundTag inventoryData) {
-        top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
-            ListTag curiosData = inventoryData.getList("Curios", 10); // 10 = CompoundTag
-            handler.loadInventory(curiosData);
-        });
-    }
-
-    /**
-     * Clears all saved range inventories
-     */
-    private static void clearRangeInventories() {
-        rangeInventories.clear();
-        System.out.println("[RangeCommands] Cleared all range inventories");
-    }
-
-    /**
-     * Clear l'inventaire Curios (méthode séparée pour isolation)
-     */
-    private static void clearCuriosInventory(ServerPlayer player) {
-        top.theillusivec4.curios.api.CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
-            handler.getCurios().forEach((slotId, slotHandler) -> {
-                for (int i = 0; i < slotHandler.getSlots(); i++) {
-                    slotHandler.getStacks().setStackInSlot(i, ItemStack.EMPTY);
-                }
-            });
-        });
-    }
-
-    /**
-     * Checks if a player has a saved range inventory
-     */
-    private static boolean hasSavedRangeInventory(UUID uuid) {
-        return rangeInventories.containsKey(uuid);
-    }
-
-    /**
-     * Supprime la sauvegarde d'inventaire d'un joueur (sans restaurer)
-     */
-    public static void removeSavedInventory(UUID uuid) {
-        rangeInventories.remove(uuid);
-    }
-
-    /**
-     * Reset complet (fin de partie)
-     */
-    public static void reset() {
-
-        rangeInventories.clear();
     }
 }
