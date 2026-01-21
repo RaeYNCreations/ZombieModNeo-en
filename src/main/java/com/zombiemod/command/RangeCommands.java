@@ -57,12 +57,12 @@ public class RangeCommands {
             return 0;
         }
 
-        GameManager.startGame(level, null); // Pas de nom de map spécifié
-        context.getSource().sendSuccess(() -> Component.literal("§aGun range On!"), true);
+        GameManager.startGameWithCustomTimer(level, null, 60);
+        context.getSource().sendSuccess(() -> Component.literal("§aGun range On! 60-second counter started!"), true);
 
         return 1;
     }
-
+    
     private static int startRangeGameWithTimer(CommandContext<CommandSourceStack> context) {
         ServerLevel level = context.getSource().getLevel();
         int seconds = IntegerArgumentType.getInteger(context, "seconds");

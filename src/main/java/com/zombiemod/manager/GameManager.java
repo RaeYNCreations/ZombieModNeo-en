@@ -34,6 +34,13 @@ public class GameManager {
     private static int startCountdownTicks = 0;
     private static String currentMapName = null; // Nom de la map actuelle
 
+    /**
+    * Debug method to check range mode status
+    */
+    public static void debugRangeMode(String location) {
+        System.out.println("[GameManager DEBUG] " + location + " - isRangeMode: " + isRangeMode + ", gameState: " + currentState);
+    }
+
     public static GameState getGameState() {
         return currentState;
     }
@@ -233,34 +240,36 @@ broadcastToAll(level, "§7Step on the activator pad or type §6" + CommandMessag
 
     public static void joinGame(ServerPlayer player, ServerLevel level) {
         UUID uuid = player.getUUID();
-
+    
         if (activePlayers.contains(uuid) || waitingPlayers.contains(uuid)) {
-            player.sendSystemMessage(Component.literal("§cYou are already in the " + CommandMessages.getGameType() + "!"));
+            player.sendSystemMessage(Component.literal("§cYou are already in the " + 
+                com.zombiemod.util.CommandMessages.getGameType() + "!"));
             return;
         }
-
+    
         BlockPos respawn = RespawnManager.getRespawnPoint();
         if (respawn == null) {
-            player.sendSystemMessage(Component.literal("§cERROR: Respawn point not defined! An admin must create atleast 1 spawn point"));
+            player.sendSystemMessage(Component.literal("§cERROR: Respawn point not defined! An admin must do §e/zombierespawn"));
             return;
         }
-
+    
         switch (currentState) {
             case WAITING:
-                String startCommand = isRangeMode ? "/zombierangestart" : "/zombiestart";
-                player.sendSystemMessage(Component.literal(CommandMessages.getNoGameRunningMessage()));
+                player.sendSystemMessage(Component.literal(
+                    com.zombiemod.util.CommandMessages.getNoGameRunningMessage()));
                 break;
-
-            case STARTING: // Countdown 60s
+    
+            case STARTING: // Countdown
                 waitingPlayers.add(uuid);
                 player.teleportTo(respawn.getX() + 0.5, respawn.getY(), respawn.getZ() + 0.5);
-                player.setGameMode(GameType.ADVENTURE); // Empêcher de casser des blocs
-                player.sendSystemMessage(Component.literal("§aYou have joined the " + CommandMessages.getGameType() + "!"));
+                player.setGameMode(GameType.ADVENTURE);
+                player.sendSystemMessage(Component.literal("§aYou have joined the " + 
+                    com.zombiemod.util.CommandMessages.getGameType() + "!"));
                 player.sendSystemMessage(Component.literal("§7Starting in §e" + (startCountdownTicks / 20) + "s"));
-                broadcastToAll(level, "§7" + player.getName().getString() + " §ewith §7(" +
+                broadcastToAll(level, "§7" + player.getName().getString() + " §ejoined §7(" +
                         (activePlayers.size() + waitingPlayers.size()) + " players)");
                 break;
-
+    
             case WAVE_ACTIVE: // Vague en cours
                 waitingPlayers.add(uuid);
                 player.setGameMode(GameType.SPECTATOR);
@@ -270,19 +279,19 @@ broadcastToAll(level, "§7Step on the activator pad or type §6" + CommandMessag
                         WaveManager.getZombiesRemaining() + " §7zombies remaining)"));
                 broadcastToActivePlayers(level, "§7" + player.getName().getString() + " §ewaiting to rejoin");
                 break;
-
-            case WAVE_COOLDOWN: // Entre vagues (10s)
+    
+            case WAVE_COOLDOWN: // Entre vagues
                 activePlayers.add(uuid);
                 player.setGameMode(GameType.ADVENTURE);
                 player.teleportTo(respawn.getX() + 0.5, respawn.getY(), respawn.getZ() + 0.5);
                 player.setHealth(player.getMaxHealth());
                 player.getFoodData().setFoodLevel(20);
                 PointsManager.setPoints(uuid, 500);
-
+    
                 player.sendSystemMessage(Component.literal("§a§l✦ Welcome to the battle! ✦"));
                 player.sendSystemMessage(Component.literal("§7Current wave: §e" + WaveManager.getCurrentWave()));
                 broadcastToActivePlayers(level, "§a" + player.getName().getString() + " §ejoined the fight!");
-
+    
                 level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP,
                         SoundSource.PLAYERS, 1.0f, 1.2f);
                 break;

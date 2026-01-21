@@ -13,7 +13,10 @@ public class CommandMessages {
      * @return "/zombiejoin" or "/zombierangejoin"
      */
     public static String getJoinCommand() {
-        return GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin";
+        boolean isRange = GameManager.isRangeMode();
+        String command = isRange ? "/zombierangejoin" : "/zombiejoin";
+        System.out.println("[CommandMessages] getJoinCommand() - isRangeMode: " + isRange + " -> returning: " + command);
+        return command;
     }
 
     /**
@@ -76,7 +79,11 @@ public class CommandMessages {
      * Creates a "not in game" message with appropriate join command
      */
     public static String getNotInGameMessage() {
-        return "§cYou must be in a running, in-progress " + getGameType() + " to buy! Step on the activator pad or type §6" + getJoinCommand() + " §cto join!";
+        String command = getJoinCommand();
+        String gameType = getGameType();
+        String message = "§cYou must be in a running, in-progress " + gameType + " to buy! Step on the activator pad or type §6" + command + " §cto join!";
+        System.out.println("[CommandMessages] getNotInGameMessage() - returning: " + message);
+        return message;
     }
 
     /**
