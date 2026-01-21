@@ -1,5 +1,6 @@
 package com.zombiemod.manager;
 
+import com.zombiemod.util.CommandMessages;
 import com.zombiemod.network.NetworkHandler;
 import com.zombiemod.network.packet.GameSyncPacket;
 import com.zombiemod.system.ServerWeaponCrateTracker;
@@ -99,12 +100,12 @@ public class GameManager {
         System.out.println("[GameManager] Reloading weapon crates...");
         ServerWeaponCrateTracker.scanAllLoadedChunks(level);
 
-        broadcastToAll(level, "§6§l=== ZOMBIE MAP SELECTION ===");
-        if (mapName != null && !mapName.isEmpty()) {
-            broadcastToAll(level, "§eMap: §6" + mapName);
-        }
-        broadcastToAll(level, "§eThe game starts in §c60 seconds§e!");
-        broadcastToAll(level, "§7Step on the activator pad or type §6/zombiejoin §7to join!");
+        broadcastToAll(level, "§6§l=== " + (isRangeMode ? "GUN RANGE" : "ZOMBIE MAP") + " SELECTION ===");
+if (mapName != null && !mapName.isEmpty()) {
+    broadcastToAll(level, "§eMap: §6" + mapName);
+}
+broadcastToAll(level, "§eThe " + CommandMessages.getGameType() + " is starting!");
+broadcastToAll(level, "§7Step on the activator pad or type §6" + CommandMessages.getJoinCommand() + " §7to join!");
     }
 
     /**
@@ -148,8 +149,8 @@ public class GameManager {
         if (mapName != null && !mapName.isEmpty()) {
             broadcastToAll(level, "§eRange: §6" + mapName);
         }
-        broadcastToAll(level, "§eThe game starts in §c" + seconds + " seconds§e!");
-        broadcastToAll(level, "§7Step on the activator pad or type §6/zombierangejoin §7to join!");
+        broadcastToAll(level, "§eThe " + CommandMessages.getGameType() + " starts in §c" + seconds + " seconds§e!");
+        broadcastToAll(level, "§7Step on the activator pad or type §6" + CommandMessages.getJoinCommand() + " §7to join!");
     }
 
         private static int syncTickCounter = 0;
@@ -181,7 +182,8 @@ public class GameManager {
             
                 // Messages toutes les 10 secondes
                 if (startCountdownTicks % 200 == 0 && seconds > 5) {
-                    broadcastToAll(level, "§eGame starts in §6" + seconds + "s §e! Step on the activator pad or type §6" + joinCommand + " §eto join!");playGlobalSound(level, SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f);
+                    broadcastToAll(level, "§e" + CommandMessages.getGameType() + " starts in §6" + seconds + "s §e! Step on the activator pad or type §6" + CommandMessages.getJoinCommand() + " §eto join!");
+                    playGlobalSound(level, SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f);
                 }
 
                 // Messages chaque seconde pour les 5 dernières
@@ -233,27 +235,27 @@ public class GameManager {
         UUID uuid = player.getUUID();
 
         if (activePlayers.contains(uuid) || waitingPlayers.contains(uuid)) {
-            player.sendSystemMessage(Component.literal("§cYou are already in the game!"));
+            player.sendSystemMessage(Component.literal("§cYou are already in the " + CommandMessages.getGameType() + "!"));
             return;
         }
 
         BlockPos respawn = RespawnManager.getRespawnPoint();
         if (respawn == null) {
-            player.sendSystemMessage(Component.literal("§cERROR: Respawn point not defined! An admin must do §e/zombierespawn"));
+            player.sendSystemMessage(Component.literal("§cERROR: Respawn point not defined! An admin must create atleast 1 spawn point"));
             return;
         }
 
         switch (currentState) {
             case WAITING:
                 String startCommand = isRangeMode ? "/zombierangestart" : "/zombiestart";
-                player.sendSystemMessage(Component.literal("§cNo games are currently in progress! Type §e" + startCommand + "§c to start a game!"));
+                player.sendSystemMessage(Component.literal(CommandMessages.getNoGameRunningMessage()));
                 break;
 
             case STARTING: // Countdown 60s
                 waitingPlayers.add(uuid);
                 player.teleportTo(respawn.getX() + 0.5, respawn.getY(), respawn.getZ() + 0.5);
                 player.setGameMode(GameType.ADVENTURE); // Empêcher de casser des blocs
-                player.sendSystemMessage(Component.literal("§aYou have joined the game!"));
+                player.sendSystemMessage(Component.literal("§aYou have joined the " + CommandMessages.getGameType() + "!"));
                 player.sendSystemMessage(Component.literal("§7Starting in §e" + (startCountdownTicks / 20) + "s"));
                 broadcastToAll(level, "§7" + player.getName().getString() + " §ewith §7(" +
                         (activePlayers.size() + waitingPlayers.size()) + " players)");
@@ -291,7 +293,7 @@ public class GameManager {
         UUID uuid = player.getUUID();
 
         if (!activePlayers.contains(uuid) && !waitingPlayers.contains(uuid)) {
-            player.sendSystemMessage(Component.literal("§cYou are not in the game!"));
+            player.sendSystemMessage(Component.literal("§cYou are not in the " + CommandMessages.getGameType() + "!"));
             return;
         }
 
@@ -300,8 +302,8 @@ public class GameManager {
         RespawnManager.removeDeadPlayer(uuid);
 
         player.setGameMode(GameType.ADVENTURE);
-        player.sendSystemMessage(Component.literal("§7You quit the game!"));
-        broadcastToAll(level, "§7" + player.getName().getString() + " §cleft the game!");
+        player.sendSystemMessage(Component.literal("§7You quit the " + CommandMessages.getGameType() + "!"));
+        broadcastToAll(level, "§7" + player.getName().getString() + " §cleft the " + CommandMessages.getGameType() + "!");
     }
 
     public static void activateWaitingPlayers(ServerLevel level) {

@@ -1,6 +1,7 @@
 package com.zombiemod.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.zombiemod.util.CommandMessages;
 import com.zombiemod.manager.GameManager;
 import com.zombiemod.network.packet.GameSyncPacket;
 import net.minecraft.client.Minecraft;
@@ -38,8 +39,10 @@ public class ZombieHUD {
             String text = "§6§lJoin in " + seconds + "s";
             int x = (graphics.guiWidth() - font.width(text)) / 2;
             graphics.drawString(font, text, x, 50, 0xFFFFFF);
-
-            String joinText = "§eStep on the activator pad or type §6/zombiejoin §eto join!";
+        
+            // Dynamic join message based on game mode (get from ClientGameData if stored, or default)
+            String joinText = "§eStep on the activator pad or type §6" + 
+                (GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin") + " §eto join!";
             int x2 = (graphics.guiWidth() - font.width(joinText)) / 2;
             graphics.drawString(font, joinText, x2, 70, 0xFFFFFF);
         }

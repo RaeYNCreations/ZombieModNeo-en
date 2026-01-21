@@ -1,5 +1,6 @@
 package com.zombiemod.event;
 
+import com.zombiemod.util.CommandMessages;
 import com.zombiemod.manager.GameManager;
 import com.zombiemod.manager.PointsManager;
 import com.zombiemod.system.WeaponCrateAnimationManager;
@@ -64,7 +65,7 @@ public class ChestInteractionHandler {
             // Vérifier si le joueur est actif
             if (!GameManager.isPlayerActive(player.getUUID())) {
                 String joinCommand = GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin";
-                player.sendSystemMessage(Component.literal("§cYou must be in a running, in-progress game to buy! Step on the activator pad or type §6" + joinCommand + " §cto join!"));
+                player.sendSystemMessage(Component.literal(CommandMessages.getNotInGameMessage()));
                 return;
             }
 
@@ -159,7 +160,7 @@ public class ChestInteractionHandler {
             // Vérifier si le joueur est actif
             if (!GameManager.isPlayerActive(player.getUUID())) {
                 String joinCommand = GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin";
-                player.sendSystemMessage(Component.literal("§cYou must be in a running, in-progress game to buy! Step on the activation pad or type §6" + joinCommand + " §cto join!"));
+                player.sendSystemMessage(Component.literal(CommandMessages.getNotInGameMessage()));
                 return;
             }
 

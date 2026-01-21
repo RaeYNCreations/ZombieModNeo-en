@@ -112,8 +112,16 @@ public class ZombieHelpCommand {
         source.sendSuccess(() -> Component.literal("§7• Cooldown between waves: §610 secondes"), false);
         source.sendSuccess(() -> Component.literal("§7• Dead players: §erespawn at the end of the wave"), false);
         source.sendSuccess(() -> Component.literal("§7• Doors: §eactivate new zombie spawns"), false);
-        source.sendSuccess(() -> Component.literal("§7• Game vs Range: §eZombie game mode does NOT have inventory clearing"), false);
-        source.sendSuccess(() -> Component.literal("§7• Game vs Range: §eGun range mode DOES inventory clearing each game start/stop"), false);
+        source.sendSuccess(() -> Component.literal(""), false);
+
+        // GAME MODES
+        source.sendSuccess(() -> Component.literal("§e§l► GAME MODES:"), false);
+        source.sendSuccess(() -> Component.literal("§aZombie Mode: §7Standard survival waves"), false);
+        source.sendSuccess(() -> Component.literal("  §7Commands: /zombiestart, /zombiejoin, /zombieleave"), false);
+        source.sendSuccess(() -> Component.literal("  §7Inventory: §eKept between games"), false);
+        source.sendSuccess(() -> Component.literal("§aGun Range: §7Practice mode with cleared inventory"), false);
+        source.sendSuccess(() -> Component.literal("  §7Commands: /zombierangestart, /zombierangejoin, /zombierangeleave"), false);
+        source.sendSuccess(() -> Component.literal("  §7Inventory: §cCleared on start/stop"), false);
         source.sendSuccess(() -> Component.literal(""), false);
 
         // FICHIERS

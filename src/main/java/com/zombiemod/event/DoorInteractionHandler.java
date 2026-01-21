@@ -1,5 +1,6 @@
 package com.zombiemod.event;
 
+import com.zombiemod.util.CommandMessages;
 import com.zombiemod.manager.GameManager;
 import com.zombiemod.manager.PointsManager;
 import com.zombiemod.map.DoorConfig;
@@ -74,7 +75,7 @@ public class DoorInteractionHandler {
             // Vérifier si le joueur est actif
             if (!GameManager.isPlayerActive(player.getUUID())) {
                 String joinCommand = GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin";
-                player.sendSystemMessage(Component.literal("§cYou need to be in the game to open this door! §7Step on the activator pad or type §6" + joinCommand + " §7to join!"));
+                player.sendSystemMessage(Component.literal(CommandMessages.getJoinToParticipateMessage()));
                 return;
             }
 
