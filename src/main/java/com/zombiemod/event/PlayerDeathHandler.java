@@ -58,28 +58,33 @@ public class PlayerDeathHandler {
         GameManager.broadcastToActivePlayers(level, "§4§l=== GAME OVER ===");
         GameManager.broadcastToActivePlayers(level, "§cYou survived until wave §e" + WaveManager.getCurrentWave());
         GameManager.broadcastToActivePlayers(level, "");
-
+    
         // Son de game over (avant le reset pour avoir accès aux joueurs actifs)
         GameManager.playSoundToActivePlayers(level, SoundEvents.WITHER_DEATH, 0.5f);
-
+    
         // Nettoyer tous les mobs de la map
         WaveManager.killAllMobs();
-
+    
         // Restaurer les inventaires et téléporter les joueurs à leur respawn point vanilla
         for (UUID uuid : GameManager.getActivePlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
-                // Mettre en survie
+                // Restaurer l'inventaire si sauvegardé (range mode)
+                if (InventoryManager.hasSavedInventory(uuid)) {
+                    InventoryManager.restoreInventory(player);
+                }
+    
+                // Mettre en adventure mode
                 player.setGameMode(GameType.ADVENTURE);
-
+    
                 // Soigner le joueur
                 player.setHealth(player.getMaxHealth());
                 player.getFoodData().setFoodLevel(20);
-
+    
                 // Téléporter au respawn point vanilla
                 net.minecraft.core.BlockPos spawnPos = player.getRespawnPosition();
                 ServerLevel spawnLevel = level.getServer().getLevel(player.getRespawnDimension());
-
+    
                 if (spawnPos != null && spawnLevel != null) {
                     // Téléporter au spawn point défini
                     player.teleportTo(spawnLevel, spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, 0, 0);
@@ -88,24 +93,30 @@ public class PlayerDeathHandler {
                     net.minecraft.core.BlockPos worldSpawn = level.getSharedSpawnPos();
                     player.teleportTo(level, worldSpawn.getX() + 0.5, worldSpawn.getY(), worldSpawn.getZ() + 0.5, 0, 0);
                 }
-
+    
                 player.sendSystemMessage(Component.literal("§7You have been returned to your spawn point."));
             }
         }
-
+    
         // Restaurer aussi les inventaires des joueurs en attente
         for (UUID uuid : GameManager.getWaitingPlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
+                // Restaurer l'inventaire si sauvegardé (range mode)
+                if (InventoryManager.hasSavedInventory(uuid)) {
+                    InventoryManager.restoreInventory(player);
+                }
+                
                 player.setGameMode(GameType.ADVENTURE);
             }
         }
-
+    
         // Reset la partie
         GameManager.reset();
         WaveManager.reset();
         RespawnManager.reset();
-
+        InventoryManager.reset(); // Clear any remaining saved inventories
+    
         // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
         com.zombiemod.command.DoorCommand.openAllDoorsAtGameEnd(level);
     }

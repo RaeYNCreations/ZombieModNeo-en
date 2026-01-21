@@ -26,6 +26,7 @@ public class GameManager {
         WAVE_COOLDOWN   // 10s entre les vagues
     }
 
+    private static boolean isRangeMode = false; // Track if current game is range mode
     private static GameState currentState = GameState.WAITING;
     private static Set<UUID> activePlayers = new HashSet<>();
     private static Set<UUID> waitingPlayers = new HashSet<>();
@@ -42,6 +43,10 @@ public class GameManager {
 
     public static Set<UUID> getActivePlayers() {
         return new HashSet<>(activePlayers);
+    }
+
+    public static boolean isRangeMode() {
+        return isRangeMode;
     }
 
     public static Set<UUID> getWaitingPlayers() {
@@ -88,6 +93,7 @@ public class GameManager {
         currentState = GameState.STARTING;
         startCountdownTicks = 1200; // 60 secondes
         currentMapName = mapName;
+        isRangeMode = false; // This is zombie mode
 
         // Recharger les weapon crates depuis la sauvegarde persistante
         System.out.println("[GameManager] Reloading weapon crates...");
@@ -132,12 +138,13 @@ public class GameManager {
         currentState = GameState.STARTING;
         startCountdownTicks = seconds * 20; // Convert seconds to ticks (20 ticks = 1 second)
         currentMapName = mapName;
+        isRangeMode = true; // This is range mode
 
         // Recharger les weapon crates depuis la sauvegarde persistante
         System.out.println("[GameManager] Reloading weapon crates...");
         ServerWeaponCrateTracker.scanAllLoadedChunks(level);
 
-        broadcastToAll(level, "§6§l=== ZOMBIE GUN RANGE ===");
+        broadcastToAll(level, "§6§l=== GUN RANGE MODE ===");
         if (mapName != null && !mapName.isEmpty()) {
             broadcastToAll(level, "§eRange: §6" + mapName);
         }
@@ -169,11 +176,12 @@ public class GameManager {
             if (currentState == GameState.STARTING) {
                 startCountdownTicks--;
                 int seconds = startCountdownTicks / 20;
-
+            
+                String joinCommand = isRangeMode ? "/zombierangejoin" : "/zombiejoin";
+            
                 // Messages toutes les 10 secondes
                 if (startCountdownTicks % 200 == 0 && seconds > 5) {
-                    broadcastToAll(level, "§eGame starts in §6" + seconds + "s §e! Step on the activator pad or type §6/zombiejoin §eto join!");
-                    playGlobalSound(level, SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f);
+                    broadcastToAll(level, "§eGame starts in §6" + seconds + "s §e! Step on the activator pad or type §6" + joinCommand + " §eto join!");playGlobalSound(level, SoundEvents.EXPERIENCE_ORB_PICKUP, 1.0f);
                 }
 
                 // Messages chaque seconde pour les 5 dernières
@@ -237,7 +245,8 @@ public class GameManager {
 
         switch (currentState) {
             case WAITING:
-                player.sendSystemMessage(Component.literal("§cNo games are currently in progress! Type §e/zombiestart§c to start a game!"));
+                String startCommand = isRangeMode ? "/zombierangestart" : "/zombiestart";
+                player.sendSystemMessage(Component.literal("§cNo games are currently in progress! Type §e" + startCommand + "§c to start a game!"));
                 break;
 
             case STARTING: // Countdown 60s
@@ -369,23 +378,40 @@ public class GameManager {
         return true; // Tous les joueurs sont déconnectés
     }
 
-    /**
-     * Arrête automatiquement la partie (appelé quand tous les joueurs se déconnectent)
-     */
     public static void stopGameAutomatic(ServerLevel level) {
         if (currentState == GameState.WAITING) {
             return; // Aucune partie en cours
         }
-
+    
         System.out.println("[ZombieMod] Game ended automatically - All players are disconnected");
-
+    
         // Nettoyer tous les mobs
         WaveManager.killAllMobs();
-
+    
+        // Restaurer les inventaires pour tous les joueurs (même déconnectés)
+        for (UUID uuid : new HashSet<>(activePlayers)) {
+            if (InventoryManager.hasSavedInventory(uuid)) {
+                ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+                if (player != null) {
+                    InventoryManager.restoreInventory(player);
+                }
+            }
+        }
+    
+        for (UUID uuid : new HashSet<>(waitingPlayers)) {
+            if (InventoryManager.hasSavedInventory(uuid)) {
+                ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
+                if (player != null) {
+                    InventoryManager.restoreInventory(player);
+                }
+            }
+        }
+    
         // Réinitialiser tous les managers
         reset();
         WaveManager.reset();
-
+        InventoryManager.reset(); // Clear any remaining saved inventories
+    
         // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
         com.zombiemod.command.DoorCommand.openAllDoorsAtGameEnd(level);
     }
@@ -397,6 +423,7 @@ public class GameManager {
         waitingPlayers.clear();
         startCountdownTicks = 0;
         currentMapName = null;
+        isRangeMode = false; // Reset range mode flag
     
 }
 

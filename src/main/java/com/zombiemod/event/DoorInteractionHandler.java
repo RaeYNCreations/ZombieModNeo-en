@@ -73,7 +73,8 @@ public class DoorInteractionHandler {
 
             // Vérifier si le joueur est actif
             if (!GameManager.isPlayerActive(player.getUUID())) {
-                player.sendSystemMessage(Component.literal("§cYou need to be in the game to open this door! §7Step on the activator pad or type §6/zombiejoin §7to join!"));
+                String joinCommand = GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin";
+                player.sendSystemMessage(Component.literal("§cYou need to be in the game to open this door! §7Step on the activator pad or type §6" + joinCommand + " §7to join!"));
                 return;
             }
 

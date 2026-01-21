@@ -78,44 +78,55 @@ public class GameCommands {
 
     private static int stopGame(CommandContext<CommandSourceStack> context) {
         ServerLevel level = context.getSource().getLevel();
-
+    
         if (GameManager.getGameState() == GameManager.GameState.WAITING) {
             context.getSource().sendFailure(Component.literal("§cNo games currently in progress!"));
             return 0;
         }
-
+    
         // Annonce de l'arrêt
         GameManager.broadcastToAll(level, "§c§l=== GAME STOPPED BY ADMIN ===");
-
+    
         // Nettoyer tous les mobs avec la méthode dédiée
         WaveManager.killAllMobs();
-
-        // Restaurer les inventaires et mettre tous les joueurs en survival
+    
+        // Restaurer les inventaires et mettre tous les joueurs en adventure
         for (UUID uuid : GameManager.getActivePlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
+                // Restaurer l'inventaire si sauvegardé (range mode)
+                if (InventoryManager.hasSavedInventory(uuid)) {
+                    InventoryManager.restoreInventory(player);
+                }
+                
                 player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
                 player.sendSystemMessage(Component.literal("§7The game has been stopped."));
             }
         }
-
+    
         for (UUID uuid : GameManager.getWaitingPlayers()) {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(uuid);
             if (player != null) {
+                // Restaurer l'inventaire si sauvegardé (range mode)
+                if (InventoryManager.hasSavedInventory(uuid)) {
+                    InventoryManager.restoreInventory(player);
+                }
+                
                 player.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
                 player.sendSystemMessage(Component.literal("§7The game has been stopped."));
             }
         }
-
+    
         // Réinitialiser tous les managers
         GameManager.reset();
         WaveManager.reset();
-
+        InventoryManager.reset(); // Clear any remaining saved inventories
+    
         // Réinitialiser les portes (fermer physiquement et réinitialiser l'état)
         DoorCommand.openAllDoorsAtGameEnd(level);
-
+    
         context.getSource().sendSuccess(() -> Component.literal("§aGame stopped, zombies cleared, and game reset."), true);
-
+    
         return 1;
     }
 

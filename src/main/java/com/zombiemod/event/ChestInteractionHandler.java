@@ -63,7 +63,8 @@ public class ChestInteractionHandler {
             }
             // Vérifier si le joueur est actif
             if (!GameManager.isPlayerActive(player.getUUID())) {
-                player.sendSystemMessage(Component.literal("§cYou must be in a running, in-progress game to buy! Stand on the activator pad or type §6/zombiejoin §cto join!"));
+                String joinCommand = GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin";
+                player.sendSystemMessage(Component.literal("§cYou must be in a running, in-progress game to buy! Step on the activator pad or type §6" + joinCommand + " §cto join!"));
                 return;
             }
 
@@ -157,7 +158,8 @@ public class ChestInteractionHandler {
         if (!level.isClientSide) {
             // Vérifier si le joueur est actif
             if (!GameManager.isPlayerActive(player.getUUID())) {
-                player.sendSystemMessage(Component.literal("§cYou must be in a running, in-progress game to buy! Stand on the activation pad or type §6/zombiejoin §cto join!"));
+                String joinCommand = GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin";
+                player.sendSystemMessage(Component.literal("§cYou must be in a running, in-progress game to buy! Step on the activation pad or type §6" + joinCommand + " §cto join!"));
                 return;
             }
 
