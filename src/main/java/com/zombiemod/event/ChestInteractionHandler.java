@@ -56,9 +56,18 @@ public class ChestInteractionHandler {
         event.setCanceled(true);
 
         if (!level.isClientSide) {
+            // Récupérer les munitions d'abord pour vérifier s'il y en a
+            ListTag ammoList = WeaponCrateManager.getAmmo(level, pos);
+
+            if (ammoList.isEmpty()) {
+                // Pas de munitions configurées, ne rien faire (le clique droit gère les armes)
+                return;
+            }
+
             // IMPORTANT: Vérifier si le joueur est actif AVANT tout autre traitement
             if (!GameManager.isPlayerActive(player.getUUID())) {
                 player.sendSystemMessage(Component.literal(CommandMessages.getNotInGameMessage()));
+                level.playSound(null, pos, SoundEvents.VILLAGER_NO, SoundSource.BLOCKS, 1.0f, 0.8f);
                 return;
             }
 
@@ -69,11 +78,8 @@ public class ChestInteractionHandler {
                 return; // Encore en cooldown, ignorer
             }
 
-            // Récupérer les munitions
-            ListTag ammoList = WeaponCrateManager.getAmmo(level, pos);
-
             if (ammoList.isEmpty()) {
-                // Pas de munitions, ne rien faire (le clique droit gère les armes)
+                // Pas de munitions configurées, ne rien faire (le clique droit gère les armes)
                 return;
             }
 
