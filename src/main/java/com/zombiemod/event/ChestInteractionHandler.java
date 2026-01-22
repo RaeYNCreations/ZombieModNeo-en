@@ -56,17 +56,17 @@ public class ChestInteractionHandler {
         event.setCanceled(true);
 
         if (!level.isClientSide) {
+            // IMPORTANT: Vérifier si le joueur est actif AVANT tout autre traitement
+            if (!GameManager.isPlayerActive(player.getUUID())) {
+                player.sendSystemMessage(Component.literal(CommandMessages.getNotInGameMessage()));
+                return;
+            }
+
             // Vérifier le cooldown pour éviter le double achat
             long currentTime = System.currentTimeMillis();
             Long lastPurchase = ammoPurchaseCooldown.get(player.getUUID());
             if (lastPurchase != null && (currentTime - lastPurchase) < COOLDOWN_MS) {
                 return; // Encore en cooldown, ignorer
-            }
-            // Vérifier si le joueur est actif
-            if (!GameManager.isPlayerActive(player.getUUID())) {
-                String joinCommand = GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin";
-                player.sendSystemMessage(Component.literal(CommandMessages.getNotInGameMessage()));
-                return;
             }
 
             // Récupérer les munitions
@@ -159,7 +159,6 @@ public class ChestInteractionHandler {
         if (!level.isClientSide) {
             // Vérifier si le joueur est actif
             if (!GameManager.isPlayerActive(player.getUUID())) {
-                String joinCommand = GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin";
                 player.sendSystemMessage(Component.literal(CommandMessages.getNotInGameMessage()));
                 return;
             }
