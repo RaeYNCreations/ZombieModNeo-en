@@ -174,9 +174,9 @@ broadcastToAll(level, "§7Step on the activator pad or type §6" + CommandMessag
                 }
             }
 
-            // Envoyer packet de sync toutes les 5 ticks (4 fois par seconde)
+            // Envoyer packet de sync toutes les 10 ticks (2 fois par seconde)
             syncTickCounter++;
-            if (syncTickCounter >= 5) {
+            if (syncTickCounter >= 10) {
                 sendSyncPacketToAll(level);
                 syncTickCounter = 0;
             }

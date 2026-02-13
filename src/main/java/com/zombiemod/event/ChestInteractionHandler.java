@@ -139,10 +139,21 @@ public class ChestInteractionHandler {
 
             // Donner tous les items au joueur
             net.minecraft.server.level.ServerPlayer serverPlayer = (net.minecraft.server.level.ServerPlayer) player;
+            
+            // Message de succès consolidé
+            if (itemsToBuy.size() == 1) {
+                ItemStack stack = itemsToBuy.get(0);
+                player.sendSystemMessage(Component.literal("§6§l✦ Purchased: §e" + names.get(0) + " §7(x" + stack.getCount() + ") §6for " + totalCost + " points"));
+            } else {
+                player.sendSystemMessage(Component.literal("§6§l✦ Purchased " + itemsToBuy.size() + " ammunition types §6for " + totalCost + " points:"));
+            }
+            
             for (int i = 0; i < itemsToBuy.size(); i++) {
                 ItemStack stack = itemsToBuy.get(i);
                 serverPlayer.addItem(stack);
-                player.sendSystemMessage(Component.literal("§6§l✦ §e" + names.get(i) + " §7(x" + stack.getCount() + ")"));
+                if (itemsToBuy.size() > 1) {
+                    player.sendSystemMessage(Component.literal("  §e• " + names.get(i) + " §7(x" + stack.getCount() + ")"));
+                }
             }
 
             player.sendSystemMessage(Component.literal("§7Points remaining: §e" + PointsManager.getPoints(player.getUUID())));
