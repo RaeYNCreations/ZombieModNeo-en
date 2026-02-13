@@ -33,7 +33,7 @@ public class WeaponCrateEventHandler {
         if (event.getState().getBlock() == Blocks.CHEST) {
             // Vérifier si c'était une weapon crate
             if (WeaponCrateManager.isWeaponCrate(level, pos)) {
-                System.out.println("[WeaponCrateEventHandler] Weapon crate created at " + pos);
+                System.out.println("[WeaponCrateEventHandler] Weapon crate broken at " + pos);
 
                 // Supprimer du tracker côté serveur
                 if (!level.isClientSide()) {

@@ -18,6 +18,7 @@ public class ClientGameData {
     private static List<GameSyncPacket.PlayerData> activePlayers = new java.util.concurrent.CopyOnWriteArrayList<>();
     private static Set<UUID> waitingPlayers = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private static UUID localPlayerUUID = null;
+    private static volatile boolean isRangeMode = false;
 
     public static void updateGameState(GameSyncPacket packet) {
         try {
@@ -33,6 +34,7 @@ public class ClientGameData {
         activePlayers = new ArrayList<>(packet.activePlayers());
         waitingPlayers = new HashSet<>(packet.waitingPlayers());
         localPlayerUUID = packet.localPlayerUUID();
+        isRangeMode = packet.isRangeMode();
     }
 
     public static GameManager.GameState getGameState() {
@@ -78,6 +80,10 @@ public class ClientGameData {
                 .orElse(0);
     }
 
+    public static boolean isRangeMode() {
+        return isRangeMode;
+    }
+
     public static void reset() {
 
         gameState = GameManager.GameState.WAITING;
@@ -88,6 +94,7 @@ public class ClientGameData {
         activePlayers.clear();
         waitingPlayers.clear();
         localPlayerUUID = null;
+        isRangeMode = false;
     
 }
 }

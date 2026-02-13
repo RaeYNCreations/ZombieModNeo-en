@@ -109,10 +109,16 @@ public class WaveManager {
 
         // Créer l'entité
         net.minecraft.world.entity.Entity entity = entityType.create(level);
-        if (!(entity instanceof Mob mob)) {
+        if (!(entity instanceof Mob)) {
             System.err.println("[ZombieMod] The entity " + mobEntry.mobType + " is not a Mob, spawn cancelled");
+            // Important: discard the entity if it was created but is not a Mob
+            if (entity != null) {
+                entity.discard();
+            }
             return;
         }
+        
+        Mob mob = (Mob) entity;
 
         mob.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0, 0);
         mob.setPersistenceRequired();
@@ -273,8 +279,16 @@ public class WaveManager {
     }
 
     private static void onWaveComplete() {
-        ServerLevel level = activeMobs.isEmpty() ? null : (ServerLevel) activeMobs.get(0).level();
-        if (level == null) return;
+        // Obtenir le ServerLevel depuis le premier mob actif, sinon retourner
+        ServerLevel level = null;
+        if (!activeMobs.isEmpty()) {
+            level = (ServerLevel) activeMobs.get(0).level();
+        }
+        
+        if (level == null) {
+            System.err.println("[WaveManager] ERROR: Cannot complete wave - no valid ServerLevel found!");
+            return;
+        }
 
         GameManager.setGameState(GameManager.GameState.WAVE_COOLDOWN);
 

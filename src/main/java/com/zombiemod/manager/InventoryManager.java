@@ -110,7 +110,7 @@ public class InventoryManager {
         CompoundTag inventoryData = savedInventories.get(uuid);
 
         if (inventoryData == null) {
-            System.out.println("[InventoryManager] No inventory saved for" + player.getName().getString());
+            System.out.println("[InventoryManager] No inventory saved for " + player.getName().getString());
             return;
         }
 

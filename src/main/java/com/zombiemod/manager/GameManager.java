@@ -496,7 +496,8 @@ broadcastToAll(level, "§7Step on the activator pad or type §6" + CommandMessag
                     WaveManager.getCountdownSeconds() * 20,
                     playerDataList,
                     new ArrayList<>(waitingPlayers),
-                    player.getUUID()
+                    player.getUUID(),
+                    isRangeMode
             );
 
             NetworkHandler.sendToPlayer(player, packet);

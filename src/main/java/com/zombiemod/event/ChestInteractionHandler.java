@@ -28,6 +28,27 @@ public class ChestInteractionHandler {
     // Cooldown pour éviter le double achat (UUID du joueur -> timestamp du dernier achat)
     private static final java.util.Map<java.util.UUID, Long> ammoPurchaseCooldown = new java.util.HashMap<>();
     private static final long COOLDOWN_MS = 500; // 500ms de cooldown
+    private static final long CLEANUP_INTERVAL_MS = 60000; // Nettoyer toutes les 60 secondes
+    private static long lastCleanupTime = System.currentTimeMillis();
+
+    /**
+     * Nettoie les anciennes entrées du cooldown pour éviter les fuites mémoire
+     */
+    private static void cleanupOldCooldowns() {
+        long currentTime = System.currentTimeMillis();
+        
+        // Ne nettoyer que toutes les 60 secondes
+        if (currentTime - lastCleanupTime < CLEANUP_INTERVAL_MS) {
+            return;
+        }
+        
+        lastCleanupTime = currentTime;
+        
+        // Supprimer les entrées plus anciennes que 5 secondes (largement suffisant)
+        ammoPurchaseCooldown.entrySet().removeIf(entry -> 
+            (currentTime - entry.getValue()) > 5000
+        );
+    }
 
     // Gestionnaire pour le clique gauche (achat de munitions)
     @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
@@ -56,6 +77,9 @@ public class ChestInteractionHandler {
         event.setCanceled(true);
 
         if (!level.isClientSide) {
+            // Nettoyer les anciens cooldowns périodiquement
+            cleanupOldCooldowns();
+            
             // Récupérer les munitions d'abord pour vérifier s'il y en a
             ListTag ammoList = WeaponCrateManager.getAmmo(level, pos);
 
@@ -76,11 +100,6 @@ public class ChestInteractionHandler {
             Long lastPurchase = ammoPurchaseCooldown.get(player.getUUID());
             if (lastPurchase != null && (currentTime - lastPurchase) < COOLDOWN_MS) {
                 return; // Encore en cooldown, ignorer
-            }
-
-            if (ammoList.isEmpty()) {
-                // Pas de munitions configurées, ne rien faire (le clique droit gère les armes)
-                return;
             }
 
             // Acheter toutes les munitions disponibles

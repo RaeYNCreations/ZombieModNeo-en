@@ -165,7 +165,7 @@ public class GameCommands {
         player.sendSystemMessage(Component.literal("§eWave: §f" + WaveManager.getCurrentWave()));
         player.sendSystemMessage(Component.literal("§eZombies remaining: §f" + WaveManager.getZombiesRemaining()));
         player.sendSystemMessage(Component.literal("§ePlayers active: §f" + GameManager.getActivePlayers().size()));
-        player.sendSystemMessage(Component.literal("§ePlayuers waiting: §f" + GameManager.getWaitingPlayers().size()));
+        player.sendSystemMessage(Component.literal("§ePlayers waiting: §f" + GameManager.getWaitingPlayers().size()));
 
         if (GameManager.isPlayerActive(player.getUUID())) {
             player.sendSystemMessage(Component.literal("§aYou're in the game!"));
