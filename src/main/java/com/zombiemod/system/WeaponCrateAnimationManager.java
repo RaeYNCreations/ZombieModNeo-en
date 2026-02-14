@@ -318,14 +318,14 @@ public class WeaponCrateAnimationManager {
      */
     public static void stopAnimation(BlockPos pos) {
         CrateAnimation anim = activeAnimations.remove(pos);
-        if (anim != null && anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
-            anim.currentDisplay.kill();
-            // System.out.println("[WeaponCrateAnimation] Animation arrêtée à " + pos);
-        }
-
-        // IMPORTANT: Tuer TOUS les Display.ItemDisplay dans un rayon de 2 blocs
-        // Cela garantit que les affichages statiques sont bien supprimés
         if (anim != null) {
+            if (anim.currentDisplay != null && anim.currentDisplay.isAlive()) {
+                anim.currentDisplay.kill();
+                // System.out.println("[WeaponCrateAnimation] Animation arrêtée à " + pos);
+            }
+
+            // IMPORTANT: Tuer TOUS les Display.ItemDisplay dans un rayon de 2 blocs
+            // Cela garantit que les affichages statiques sont bien supprimés
             killAllDisplaysNearby(anim.level, pos, 2.0);
         }
     }

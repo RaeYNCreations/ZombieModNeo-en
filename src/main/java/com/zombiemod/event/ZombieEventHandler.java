@@ -24,6 +24,11 @@ public class ZombieEventHandler {
         }
 
         if (event.getEntity() instanceof Zombie zombie) {
+            // Vérifier si c'est un mob de vague (éviter les points pour les zombies naturels)
+            if (!WaveManager.isWaveMob(zombie)) {
+                return;
+            }
+
             DamageSource source = event.getSource();
             Entity attacker = source.getEntity();
 
@@ -50,6 +55,11 @@ public class ZombieEventHandler {
         }
 
         if (event.getEntity() instanceof Zombie zombie) {
+            // Vérifier si c'est un mob de vague (éviter les points pour les zombies naturels)
+            if (!WaveManager.isWaveMob(zombie)) {
+                return;
+            }
+
             // Un zombie est mort
             DamageSource source = event.getSource();
             Entity killer = source.getEntity();

@@ -40,9 +40,9 @@ public class ZombieHUD {
             int x = (graphics.guiWidth() - font.width(text)) / 2;
             graphics.drawString(font, text, x, 50, 0xFFFFFF);
         
-            // Dynamic join message based on game mode (get from ClientGameData if stored, or default)
+            // Dynamic join message based on game mode from synced client data
             String joinText = "§eStep on the activator pad or type §6" + 
-                (GameManager.isRangeMode() ? "/zombierangejoin" : "/zombiejoin") + " §eto join!";
+                (ClientGameData.isRangeMode() ? "/zombierangejoin" : "/zombiejoin") + " §eto join!";
             int x2 = (graphics.guiWidth() - font.width(joinText)) / 2;
             graphics.drawString(font, joinText, x2, 70, 0xFFFFFF);
         }

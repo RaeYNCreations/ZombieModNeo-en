@@ -21,7 +21,8 @@ public record GameSyncPacket(
         int waveCountdownTicks,
         List<PlayerData> activePlayers,
         List<UUID> waitingPlayers,
-        UUID localPlayerUUID
+        UUID localPlayerUUID,
+        boolean isRangeMode
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<GameSyncPacket> TYPE =
@@ -38,6 +39,7 @@ public record GameSyncPacket(
             List<PlayerData> activePlayers = PlayerData.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buf);
             List<UUID> waitingPlayers = UUIDUtil.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buf);
             UUID localPlayerUUID = UUIDUtil.STREAM_CODEC.decode(buf);
+            boolean isRangeMode = ByteBufCodecs.BOOL.decode(buf);
 
             return new GameSyncPacket(
                     gameState,
@@ -47,7 +49,8 @@ public record GameSyncPacket(
                     waveCountdownTicks,
                     activePlayers,
                     waitingPlayers,
-                    localPlayerUUID
+                    localPlayerUUID,
+                    isRangeMode
             );
         }
 
@@ -61,6 +64,7 @@ public record GameSyncPacket(
             PlayerData.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buf, packet.activePlayers());
             UUIDUtil.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buf, packet.waitingPlayers());
             UUIDUtil.STREAM_CODEC.encode(buf, packet.localPlayerUUID());
+            ByteBufCodecs.BOOL.encode(buf, packet.isRangeMode());
         }
     };
 
